@@ -1,0 +1,55 @@
+# docker-compose.yml
+
+version: '3.7'
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    ports:
+    - "${PG_PORT_EXT}:${PG_PORT_INT}"
+    environment:
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    # bind mount postgres db data and script data
+    volumes:
+    - "./${PG_DATA}:/var/lib/postgresql/data"
+
+  mysql:
+    container_name: mysql
+    build:
+      context: ./docker/mysql
+      args:
+      - ENVIRONMENT=${ENVIRONMENT} # used to load the correct db init scripts
+    restart: always
+    ports:
+    - "${MYSQL_PORT_EXT}:${MYSQL_PORT_INT}"
+    environment:
+      MYSQL_DATABASE: ${ENVIRONMENT}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    # bind mount postgres db data and script data
+    volumes:
+    - "./${MYSQL_DATA}:/var/lib/mysql:cached"
+
+  pgloader:
+    build:
+      context: ./docker/pgloader
+      args:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_PORT_INT=${MYSQL_PORT_INT}
+      - MYSQL_USER=${MYSQL_USER}
+      - PG_DB=${PG_DB}
+      - PG_PASSWORD=${PG_PASSWORD}
+      - PG_PORT_INT=${PG_PORT_INT}
+      - PG_USER=${PG_USER}
+    container_name: pgloader
+    # parameters for the wait script
+    environment:
+      WAIT_HOSTS: postgres:${PG_PORT_INT},mysql:${MYSQL_PORT_INT}
+      WAIT_HOSTS_TIMEOUT: 120
+      WAIT_AFTER_HOSTS: 15 # to allow for the sql scripts to be loaded into the database
+      WAIT_SLEEP_INTERVAL: 5 # we check only every 5 seconds to see whether hosts are up

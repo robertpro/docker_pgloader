@@ -1,0 +1,9 @@
+# .env files
+.env
+
+# IDE files
+.idea
+
+# database data files
+/docker/postgres/pgdata/*
+/docker/mysql/data/*

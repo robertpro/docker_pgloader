@@ -1,0 +1,2 @@
+this directory is the default for the postgres data folder. 
+This can be changed in the .env file.
